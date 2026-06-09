@@ -1,4 +1,4 @@
-const CACHE_NAME = "lagerverwaltung-v2";
+const CACHE_NAME = "lagerverwaltung-v3";
 const ASSETS = ["./","./index.html","./style.css","./app.js","./mapping.js","./manifest.webmanifest","./icon.svg"];
 
 self.addEventListener("install", event => {

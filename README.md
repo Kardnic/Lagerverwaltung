@@ -1,15 +1,13 @@
 # Lagerverwaltung
 
-Korrigierte GitHub-Pages-Version.
+Aktualisierte GitHub-Pages-Version für `Lagerplanung(3).xlsx`.
 
-## Änderungen
-- Zellverknüpfung korrigiert
-- Feld Mitte nutzt D/F/H/J und Zeilen 8/10/12/14
-- Regal/Feld 4 wird wie in der Excel als breiter oberer Regalblock dargestellt
-- Blattnamen passend: `Regal und Feld 1` bis `Regal und Feld 4`
+## Änderung
+Die Zuordnung wird jetzt 1:1 aus der aktualisierten Excel-Struktur erzeugt.
+Auch `Regal und Feld 4` wird anhand der echten Zellpositionen A1/S7 dargestellt.
 
-## Hochladen
-Diese Dateien im GitHub-Repository ersetzen:
+## Dateien ersetzen
+In GitHub diese Dateien ersetzen:
 
 - index.html
 - style.css
@@ -18,3 +16,6 @@ Diese Dateien im GitHub-Repository ersetzen:
 - manifest.webmanifest
 - service-worker.js
 - icon.svg
+
+Danach einige Minuten warten und auf dem Handy die Seite neu laden.
+Bei Problemen wegen Cache: Chrome-Menü → Verlauf/Browserverlauf löschen oder die Seite einmal im Inkognito-Modus öffnen.

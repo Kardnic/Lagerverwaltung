@@ -52,81 +52,92 @@ function setCellValue(sheetName, cellAddress, value) {
 function displayValue(slot) {
   if (changedValues.has(key(slot))) return changedValues.get(key(slot));
   const val = getCellValue(slot.sheet, slot.cell);
-  // Wenn in der Excel noch die Lagerplatzbezeichnung steht, gilt der Platz als frei.
-  if (val === slot.label) return "";
-  return val;
+  if (!val) return "";
+  return String(val).trim() === String(slot.label).trim() ? "" : String(val);
 }
 
-function occupied(slot) {
-  return displayValue(slot).trim() !== "";
-}
+function occupied(slot) { return displayValue(slot).trim() !== ""; }
 
-function slots(area, block) {
-  return MAPPING.filter(s => s.area === area && s.block === block);
-}
-
-function sortSlots(list) {
-  return [...list].sort((a,b) => {
-    const ca = XLSX.utils.decode_cell(a.cell);
-    const cb = XLSX.utils.decode_cell(b.cell);
-    if (ca.r !== cb.r) return ca.r - cb.r;
-    return ca.c - cb.c;
-  });
-}
-
-function createSlot(slot) {
+function createSlot(slot, minRow, minCol) {
   const btn = document.createElement("button");
   btn.type = "button";
   btn.className = "slot";
   const val = displayValue(slot);
-
   if (selectedSlot && selectedSlot.id === slot.id) btn.classList.add("selected");
   else if (changedValues.has(key(slot))) btn.classList.add("changed");
   else if (occupied(slot)) btn.classList.add("occupied");
   else btn.classList.add("free");
 
-  btn.innerHTML = `<div class="slot-label">${slot.label}</div><div class="slot-value">${val || "frei"}</div>`;
+  btn.style.gridColumn = String(slot.col - minCol + 2);
+  btn.style.gridRow = String(slot.row - minRow + 2);
+  btn.innerHTML = `<div class="slot-label">${escapeHtml(slot.label)}</div><div class="slot-value">${escapeHtml(val || "frei")}</div>`;
   btn.addEventListener("click", () => selectSlot(slot));
   return btn;
 }
 
-function createBlock(title, blockClass, slotList, gridClass) {
-  const block = document.createElement("div");
-  block.className = `block block-${blockClass}`;
-  const titleEl = document.createElement("div");
-  titleEl.className = "block-title";
-  titleEl.textContent = title;
-  const grid = document.createElement("div");
-  grid.className = gridClass;
-  sortSlots(slotList).forEach(s => grid.appendChild(createSlot(s)));
-  block.appendChild(titleEl);
-  block.appendChild(grid);
-  return block;
+function escapeHtml(str) {
+  return String(str).replace(/[&<>'"]/g, c => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;"
+  }[c]));
+}
+
+function colToName(col) {
+  let name = "";
+  let n = col;
+  while (n > 0) {
+    const r = (n - 1) % 26;
+    name = String.fromCharCode(65 + r) + name;
+    n = Math.floor((n - 1) / 26);
+  }
+  return name;
 }
 
 function renderWarehouse() {
   els.warehouse.innerHTML = "";
+
   AREAS.forEach(area => {
+    const areaSlots = MAPPING.filter(s => s.area === area);
+    if (!areaSlots.length) return;
+
+    const minRow = Math.min(...areaSlots.map(s => s.row));
+    const maxRow = Math.max(...areaSlots.map(s => s.row));
+    const minCol = Math.min(...areaSlots.map(s => s.col));
+    const maxCol = Math.max(...areaSlots.map(s => s.col));
+
     const sec = document.createElement("section");
     sec.className = "area";
+
     const title = document.createElement("h2");
     title.className = "area-title";
     title.textContent = area;
-    const layout = document.createElement("div");
 
-    if (area === "Regal und Feld 4") {
-      layout.className = "area-layout area4";
-      layout.appendChild(createBlock("Regal oben", "top", slots(area, "topWide"), "grid-top-wide"));
-    } else {
-      layout.className = "area-layout";
-      layout.appendChild(createBlock("Regal oben", "top", slots(area, "top"), "grid-top"));
-      layout.appendChild(createBlock("Regal links", "left", slots(area, "left"), "grid-side"));
-      layout.appendChild(createBlock("Feld Mitte", "middle", slots(area, "middle"), "grid-middle"));
-      layout.appendChild(createBlock("Regal rechts", "right", slots(area, "right"), "grid-side"));
+    const grid = document.createElement("div");
+    grid.className = "excel-grid";
+    grid.style.gridTemplateColumns = `34px repeat(${maxCol - minCol + 1}, minmax(66px, 1fr))`;
+    grid.style.gridTemplateRows = `22px repeat(${maxRow - minRow + 1}, minmax(46px, auto))`;
+
+    for (let c = minCol; c <= maxCol; c++) {
+      const label = document.createElement("div");
+      label.className = "axis-label";
+      label.style.gridColumn = String(c - minCol + 2);
+      label.style.gridRow = "1";
+      label.textContent = colToName(c);
+      grid.appendChild(label);
     }
 
+    for (let r = minRow; r <= maxRow; r++) {
+      const label = document.createElement("div");
+      label.className = "axis-label row-label";
+      label.style.gridColumn = "1";
+      label.style.gridRow = String(r - minRow + 2);
+      label.textContent = r;
+      grid.appendChild(label);
+    }
+
+    areaSlots.forEach(slot => grid.appendChild(createSlot(slot, minRow, minCol)));
+
     sec.appendChild(title);
-    sec.appendChild(layout);
+    sec.appendChild(grid);
     els.warehouse.appendChild(sec);
   });
 }
@@ -141,7 +152,7 @@ function selectSlot(slot) {
   els.scanBtn.disabled = false;
   els.saveBtn.disabled = false;
   els.emptyBtn.disabled = false;
-  setMessage(`Lagerplatz ${slot.label} ausgewählt.`, "ok");
+  setMessage(`Lagerplatz ${slot.label} (${slot.cell}) ausgewählt.`, "ok");
   renderWarehouse();
 }
 
@@ -161,7 +172,7 @@ function saveSelected(valueOverride = null) {
   els.currentValue.textContent = value || "-";
   els.downloadBtn.disabled = false;
   els.clearChangesBtn.disabled = false;
-  setMessage(`Übernommen: ${selectedSlot.label} = ${value || "leer"}`, "ok");
+  setMessage(`Übernommen: ${selectedSlot.label} / ${selectedSlot.cell} = ${value || "leer"}`, "ok");
   renderWarehouse();
 }
 
@@ -230,7 +241,7 @@ async function stopScanner() {
 
 els.fileInput.addEventListener("change", e => handleFile(e.target.files[0]));
 els.downloadBtn.addEventListener("click", downloadExcel);
-els.clearChangesBtn.addEventListener("click", () => { changedValues.clear(); renderWarehouse(); });
+els.clearChangesBtn.addEventListener("click", () => { changedValues.clear(); renderWarehouse(); setMessage("Markierungen zurückgesetzt.", "ok"); });
 els.saveBtn.addEventListener("click", () => saveSelected());
 els.emptyBtn.addEventListener("click", () => { els.orderInput.value = ""; saveSelected(""); });
 els.scanBtn.addEventListener("click", startScanner);
