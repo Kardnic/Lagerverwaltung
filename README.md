@@ -1,8 +1,15 @@
-# Lagerplanung
+# Lagerverwaltung
 
-Diese Dateien direkt in ein GitHub-Repository hochladen. Danach GitHub Pages aktivieren.
+Korrigierte GitHub-Pages-Version.
 
-## Dateien
+## Änderungen
+- Zellverknüpfung korrigiert
+- Feld Mitte nutzt D/F/H/J und Zeilen 8/10/12/14
+- Regal/Feld 4 wird wie in der Excel als breiter oberer Regalblock dargestellt
+- Blattnamen passend: `Regal und Feld 1` bis `Regal und Feld 4`
+
+## Hochladen
+Diese Dateien im GitHub-Repository ersetzen:
 
 - index.html
 - style.css
@@ -11,20 +18,3 @@ Diese Dateien direkt in ein GitHub-Repository hochladen. Danach GitHub Pages akt
 - manifest.webmanifest
 - service-worker.js
 - icon.svg
-
-## GitHub Pages
-
-Repository öffnen → Settings → Pages → Deploy from a branch → main → /root.
-
-## Excel-Zuordnung
-
-Die Zellzuordnung steht in `mapping.js`. Wichtig: `sheet` muss exakt dem Tabellenblattnamen in Excel entsprechen.
-
-## Nutzung
-
-1. App öffnen
-2. Excel-Datei laden
-3. Lagerplatz antippen
-4. Auftragsnummer scannen oder eingeben
-5. In Lagerplatz übernehmen
-6. Excel herunterladen

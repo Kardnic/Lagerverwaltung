@@ -3,55 +3,63 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Lagerplanung</title>
+  <title>Lagerverwaltung</title>
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="stylesheet" href="style.css" />
   <meta name="theme-color" content="#1f2937" />
 </head>
 <body>
   <header class="app-header">
-    <h1>Lagerplanung</h1>
-    <p>Excel laden, Lagerplatz auswählen, Auftragsnummer scannen oder eingeben.</p>
+    <h1>Lagerverwaltung</h1>
+    <p>Lagerverwaltung KWK-Verpackung Test</p>
   </header>
+
   <main>
     <section class="panel">
-      <h2>1. Excel-Datei</h2>
+      <h2>Excel-Datei</h2>
       <input id="fileInput" type="file" accept=".xlsx,.xls" />
       <div class="status-row"><span id="fileStatus">Keine Datei geladen</span></div>
       <div class="button-row">
         <button id="downloadBtn" disabled>Excel herunterladen</button>
-        <button id="clearChangesBtn" disabled>Änderungen verwerfen</button>
+        <button id="clearChangesBtn" disabled>Änderungsmarkierung zurücksetzen</button>
       </div>
     </section>
+
     <section class="panel sticky-panel">
-      <h2>2. Ausgewählter Lagerplatz</h2>
+      <h2>Ausgewählter Lagerplatz</h2>
       <div class="selected-box">
         <div><strong>Platz:</strong> <span id="selectedSlot">-</span></div>
         <div><strong>Zelle:</strong> <span id="selectedCell">-</span></div>
         <div><strong>Aktueller Inhalt:</strong> <span id="currentValue">-</span></div>
       </div>
+
       <label for="orderInput">Auftragsnummer</label>
       <input id="orderInput" type="text" placeholder="Scannen oder manuell eingeben" autocomplete="off" />
+
       <div class="button-row">
         <button id="scanBtn" disabled>Kamera scannen</button>
         <button id="saveBtn" disabled>In Lagerplatz übernehmen</button>
         <button id="emptyBtn" disabled>Platz leeren</button>
       </div>
+
       <div id="scannerWrap" class="scanner hidden">
         <div id="reader"></div>
         <button id="stopScanBtn">Scan beenden</button>
       </div>
+
       <p id="message" class="message"></p>
     </section>
+
     <section class="legend">
       <span><span class="dot free"></span> frei</span>
       <span><span class="dot occupied"></span> belegt</span>
       <span><span class="dot selected"></span> ausgewählt</span>
       <span><span class="dot changed"></span> geändert</span>
     </section>
+
     <section id="warehouse" class="warehouse"></section>
   </main>
-  <footer><small>Lagerplanung PWA – lokale Excel-Bearbeitung im Browser</small></footer>
+
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <script src="mapping.js"></script>

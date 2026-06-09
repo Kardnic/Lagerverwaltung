@@ -1,11 +1,10 @@
 {
-  "name": "Lagerplanung",
-  "short_name": "Lagerplanung",
+  "name": "Lagerverwaltung",
+  "short_name": "Lager",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#f3f4f6",
   "theme_color": "#1f2937",
-  "description": "Excel-Lagerplanung mit Barcode-Scan",
   "icons": [
     {
       "src": "icon.svg",
