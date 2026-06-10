@@ -545,4 +545,13 @@ if(extraEls.outInput) extraEls.outInput.addEventListener("keydown", e => {
 if(extraEls.outClearBtn) extraEls.outClearBtn.addEventListener("click", clearFoundOutgoingSlot);
 
 if(extraEls.toggleDarkBtn) extraEls.toggleDarkBtn.addEventListener("click", toggleDarkMode);
+els.loadJsonBtn.addEventListener("click", () => {
+  els.jsonInput.click();
+});
+
+els.jsonInput.addEventListener("change", e => {
+  importJsonData(e.target.files[0]);
+});
+
+els.saveJsonBtn.addEventListener("click", exportJsonData);
 renderWarehouse();
