@@ -466,7 +466,70 @@ if(localStorage.getItem("darkMode") === "1"){
 }
 
 loadLocalDraft();
+function exportJsonData() {
+  const data = {};
 
+  MAPPING.forEach(slot => {
+    const value = displayValue(slot);
+    if (value && value.trim() !== "") {
+      data[slot.id] = {
+        label: slot.label,
+        sheet: slot.sheet,
+        cell: slot.cell,
+        value: value
+      };
+    }
+  });
+
+  const blob = new Blob([JSON.stringify(data, null, 2)], {
+    type: "application/json"
+  });
+
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "lagerdaten.json";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+
+  setMessage("lagerdaten.json wurde erstellt.", "ok");
+}
+
+function importJsonData(file) {
+  if (!file) return;
+
+  const reader = new FileReader();
+
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+
+      Object.values(data).forEach(entry => {
+        const slot = MAPPING.find(s =>
+          s.id === entry.id ||
+          s.label === entry.label ||
+          s.cell === entry.cell
+        );
+
+        if (slot) {
+          changedValues.set(key(slot), entry.value || "");
+        }
+      });
+
+      localStorage.setItem("lagerplanungDraft", JSON.stringify(Array.from(changedValues.entries())));
+
+      renderWarehouse();
+      if (typeof updateStats === "function") updateStats();
+
+      setMessage("JSON-Daten wurden geladen.", "ok");
+    } catch (err) {
+      console.error(err);
+      setMessage("JSON-Datei konnte nicht gelesen werden.", "error");
+    }
+  };
+
+  reader.readAsText(file);
+}
 if(extraEls.searchBtn) extraEls.searchBtn.addEventListener("click", searchSlot);
 if(extraEls.searchInput) extraEls.searchInput.addEventListener("keydown", e => {
   if(e.key === "Enter") searchSlot();
