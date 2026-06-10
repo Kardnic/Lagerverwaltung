@@ -1,4 +1,11 @@
-  {
+ const AREAS = [
+  "Regal und Feld 1",
+  "Regal und Feld 2",
+  "Regal und Feld 3",
+  "Regal und Feld 4"
+];
+
+const MAPPING = [ {
     "id": "Regal und Feld 4!E5",
     "label": "R3.2.24",
     "sheet": "Regal und Feld 4",
