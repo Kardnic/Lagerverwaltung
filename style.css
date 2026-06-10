@@ -27,4 +27,93 @@ label{display:block;margin:12px 0 6px;font-weight:700}
 .row-label{font-weight:700;color:#374151}
 .scanner{margin-top:12px;border:2px solid #111827;border-radius:10px;padding:10px;background:#f9fafb}.hidden{display:none}
 #reader{width:100%;max-width:480px;margin:0 auto}
-@media(max-width:760px){main{padding:8px}.slot{min-width:66px;min-height:46px;font-size:11px}.slot-value{font-size:12px}.area-title{font-size:18px}}
+@media(max-width:760px){
+  main{
+    padding:6px;
+  }
+
+  .app-header{
+    padding:12px 8px;
+  }
+
+  .app-header h1{
+    font-size:22px;
+  }
+
+  .app-header p{
+    font-size:13px;
+  }
+
+  .panel{
+    padding:10px;
+    margin-bottom:10px;
+    border-radius:10px;
+  }
+
+  .sticky-panel{
+    position:static;
+  }
+
+  .button-row{
+    display:grid;
+    grid-template-columns:1fr;
+    gap:8px;
+  }
+
+  button{
+    width:100%;
+    font-size:16px;
+    min-height:48px;
+  }
+
+  input[type=file],
+  input[type=text]{
+    font-size:16px;
+    min-height:48px;
+  }
+
+  .legend{
+    font-size:13px;
+    gap:8px;
+  }
+
+  .area{
+    padding:8px;
+    border-radius:8px;
+  }
+
+  .area-title{
+    font-size:18px;
+    padding:6px;
+    margin-bottom:8px;
+  }
+
+  .excel-grid{
+    gap:0;
+    overflow-x:auto;
+  }
+
+  .axis-label{
+    font-size:10px;
+  }
+
+  .slot{
+    min-width:58px;
+    min-height:44px;
+    font-size:10px;
+    padding:3px;
+  }
+
+  .slot-label{
+    font-size:10px;
+  }
+
+  .slot-value{
+    font-size:10px;
+    margin-top:2px;
+  }
+
+  #reader{
+    max-width:100%;
+  }
+}
