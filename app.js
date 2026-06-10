@@ -251,5 +251,232 @@ els.orderInput.addEventListener("keydown", e => { if (e.key === "Enter") saveSel
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => navigator.serviceWorker.register("service-worker.js").catch(console.warn));
 }
+const extraEls = {
+  statsBox: document.getElementById("statsBox"),
+  searchInput: document.getElementById("searchInput"),
+  searchBtn: document.getElementById("searchBtn"),
+  findFreeBtn: document.getElementById("findFreeBtn"),
+  outInput: document.getElementById("outInput"),
+  outSearchBtn: document.getElementById("outSearchBtn"),
+  outClearBtn: document.getElementById("outClearBtn"),
+  toggleDarkBtn: document.getElementById("toggleDarkBtn")
+};
 
+let lastFoundSlot = null;
+const collapsedAreas = new Set(JSON.parse(localStorage.getItem("collapsedAreas") || "[]"));
+
+function saveLocalDraft(){
+  const data = Array.from(changedValues.entries());
+  localStorage.setItem("lagerplanungDraft", JSON.stringify(data));
+}
+
+function loadLocalDraft(){
+  try{
+    const data = JSON.parse(localStorage.getItem("lagerplanungDraft") || "[]");
+    changedValues.clear();
+    data.forEach(([k,v]) => changedValues.set(k,v));
+  }catch(e){}
+}
+
+function saveUiState(){
+  localStorage.setItem("collapsedAreas", JSON.stringify(Array.from(collapsedAreas)));
+}
+
+function findSlotByValueOrLabel(query){
+  const q = String(query || "").trim().toLowerCase();
+  if(!q) return null;
+
+  return MAPPING.find(slot => {
+    const label = String(slot.label || "").toLowerCase();
+    const value = String(displayValue(slot) || "").toLowerCase();
+    return label === q || value === q || label.includes(q) || value.includes(q);
+  }) || null;
+}
+
+function scrollToSelected(){
+  setTimeout(() => {
+    const selected = document.querySelector(".slot.selected");
+    if(selected){
+      selected.scrollIntoView({behavior:"smooth", block:"center", inline:"center"});
+    }
+  }, 100);
+}
+
+function updateStats(){
+  if(!extraEls.statsBox) return;
+
+  let html = "";
+  let totalAll = 0;
+  let occupiedAll = 0;
+
+  AREAS.forEach(area => {
+    const areaSlots = MAPPING.filter(s => s.area === area);
+    const total = areaSlots.length;
+    const used = areaSlots.filter(s => occupied(s)).length;
+    totalAll += total;
+    occupiedAll += used;
+    const percent = total ? Math.round((used / total) * 100) : 0;
+
+    html += `
+      <div class="stat-card">
+        ${area}
+        <small>${used} / ${total} belegt · ${percent}%</small>
+      </div>
+    `;
+  });
+
+  const percentAll = totalAll ? Math.round((occupiedAll / totalAll) * 100) : 0;
+
+  html = `
+    <div class="stat-card">
+      Gesamt
+      <small>${occupiedAll} / ${totalAll} belegt · ${percentAll}%</small>
+    </div>
+  ` + html;
+
+  extraEls.statsBox.innerHTML = html;
+}
+
+const oldRenderWarehouse = renderWarehouse;
+
+renderWarehouse = function(){
+  oldRenderWarehouse();
+
+  document.querySelectorAll(".area").forEach(areaEl => {
+    const title = areaEl.querySelector(".area-title");
+    if(!title) return;
+
+    const areaName = title.textContent.trim().replace("▼","").replace("▶","").trim();
+
+    if(collapsedAreas.has(areaName)){
+      areaEl.classList.add("collapsed");
+    }
+
+    title.onclick = () => {
+      if(collapsedAreas.has(areaName)){
+        collapsedAreas.delete(areaName);
+        areaEl.classList.remove("collapsed");
+      }else{
+        collapsedAreas.add(areaName);
+        areaEl.classList.add("collapsed");
+      }
+      saveUiState();
+    };
+  });
+
+  updateStats();
+};
+
+const oldSaveSelected = saveSelected;
+
+saveSelected = function(valueOverride = null){
+  oldSaveSelected(valueOverride);
+  saveLocalDraft();
+  updateStats();
+};
+
+const oldSelectSlot = selectSlot;
+
+selectSlot = function(slot){
+  oldSelectSlot(slot);
+  scrollToSelected();
+};
+
+function searchSlot(){
+  const slot = findSlotByValueOrLabel(extraEls.searchInput.value);
+
+  if(!slot){
+    setMessage("Kein Lagerplatz oder Auftrag gefunden.", "error");
+    return;
+  }
+
+  if(collapsedAreas.has(slot.area)){
+    collapsedAreas.delete(slot.area);
+    saveUiState();
+  }
+
+  selectSlot(slot);
+  setMessage(`Gefunden: ${slot.label} in ${slot.area}`, "ok");
+}
+
+function findFreeSlot(){
+  const slot = MAPPING.find(s => !occupied(s));
+
+  if(!slot){
+    setMessage("Kein freier Lagerplatz gefunden.", "error");
+    return;
+  }
+
+  if(collapsedAreas.has(slot.area)){
+    collapsedAreas.delete(slot.area);
+    saveUiState();
+  }
+
+  selectSlot(slot);
+  setMessage(`Nächster freier Platz: ${slot.label}`, "ok");
+}
+
+function findOutgoingOrder(){
+  const slot = findSlotByValueOrLabel(extraEls.outInput.value);
+
+  if(!slot){
+    lastFoundSlot = null;
+    setMessage("Auftrag wurde nicht gefunden.", "error");
+    return;
+  }
+
+  lastFoundSlot = slot;
+
+  if(collapsedAreas.has(slot.area)){
+    collapsedAreas.delete(slot.area);
+    saveUiState();
+  }
+
+  selectSlot(slot);
+  setMessage(`Auftrag gefunden: ${displayValue(slot)} liegt auf ${slot.label}`, "ok");
+}
+
+function clearFoundOutgoingSlot(){
+  if(!lastFoundSlot && selectedSlot){
+    lastFoundSlot = selectedSlot;
+  }
+
+  if(!lastFoundSlot){
+    setMessage("Erst einen Auftrag suchen.", "error");
+    return;
+  }
+
+  selectedSlot = lastFoundSlot;
+  els.orderInput.value = "";
+  saveSelected("");
+  setMessage(`Platz geleert: ${lastFoundSlot.label}`, "ok");
+  lastFoundSlot = null;
+}
+
+function toggleDarkMode(){
+  document.body.classList.toggle("dark");
+  localStorage.setItem("darkMode", document.body.classList.contains("dark") ? "1" : "0");
+}
+
+if(localStorage.getItem("darkMode") === "1"){
+  document.body.classList.add("dark");
+}
+
+loadLocalDraft();
+
+if(extraEls.searchBtn) extraEls.searchBtn.addEventListener("click", searchSlot);
+if(extraEls.searchInput) extraEls.searchInput.addEventListener("keydown", e => {
+  if(e.key === "Enter") searchSlot();
+});
+
+if(extraEls.findFreeBtn) extraEls.findFreeBtn.addEventListener("click", findFreeSlot);
+
+if(extraEls.outSearchBtn) extraEls.outSearchBtn.addEventListener("click", findOutgoingOrder);
+if(extraEls.outInput) extraEls.outInput.addEventListener("keydown", e => {
+  if(e.key === "Enter") findOutgoingOrder();
+});
+
+if(extraEls.outClearBtn) extraEls.outClearBtn.addEventListener("click", clearFoundOutgoingSlot);
+
+if(extraEls.toggleDarkBtn) extraEls.toggleDarkBtn.addEventListener("click", toggleDarkMode);
 renderWarehouse();
