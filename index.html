@@ -56,7 +56,31 @@
       <span><span class="dot selected"></span> ausgewählt</span>
       <span><span class="dot changed"></span> geändert</span>
     </section>
+<section class="panel mobile-tools">
+  <h2>Werkzeuge</h2>
 
+  <div id="statsBox" class="stats-box"></div>
+
+  <label for="searchInput">Auftrag oder Lagerplatz suchen</label>
+  <input id="searchInput" type="text" placeholder="z. B. 4711 oder R3.2.15" />
+
+  <div class="button-row">
+    <button id="searchBtn">Suchen</button>
+    <button id="findFreeBtn">Nächsten freien Platz</button>
+  </div>
+
+  <label for="outInput">Auslagern / Auftrag finden</label>
+  <input id="outInput" type="text" placeholder="Auftragsnummer scannen/eingeben" />
+
+  <div class="button-row">
+    <button id="outSearchBtn">Auftrag finden</button>
+    <button id="outClearBtn">Gefundenen Platz leeren</button>
+  </div>
+
+  <div class="button-row">
+    <button id="toggleDarkBtn">🌙 Dunkelmodus</button>
+  </div>
+</section>
     <section id="warehouse" class="warehouse"></section>
   </main>
 
