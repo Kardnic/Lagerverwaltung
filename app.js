@@ -650,6 +650,7 @@ if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("service-worker.js").catch(console.warn);
   });
 }
-
+console.log("Firebase:", firebase);
+console.log("Firestore:", db);
 renderWarehouse();
 loadFromFirestore();
