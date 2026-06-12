@@ -45,11 +45,12 @@
       <input id="orderInput" type="text" placeholder="Scannen oder manuell eingeben" autocomplete="off" />
 
       <div class="button-row">
+        <button id="ocrBtn" disabled>Auftragsschein scannen</button>        
         <button id="scanBtn" disabled>Kamera scannen</button>
         <button id="saveBtn" disabled>Speichern</button>
         <button id="emptyBtn" disabled>Platz leeren</button>
       </div>
-
+      <input id="ocrImageInput" type="file" accept="image/*" capture="environment" style="display:none" />
       <div id="scannerWrap" class="scanner hidden">
         <div id="reader"></div>
         <button id="stopScanBtn">Scan beenden</button>
@@ -93,7 +94,7 @@
 
     <section id="warehouse" class="warehouse"></section>
   </main>
-
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 
