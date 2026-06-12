@@ -35,7 +35,13 @@ const els = {
   outClearBtn: document.getElementById("outClearBtn"),
   toggleDarkBtn: document.getElementById("toggleDarkBtn"),
   ocrBtn: document.getElementById("ocrBtn"),
-  ocrImageInput: document.getElementById("ocrImageInput")
+  ocrImageInput: document.getElementById("ocrImageInput"),
+  ocrImageInput: document.getElementById("ocrImageInput"),
+liveOcrBtn: document.getElementById("liveOcrBtn"),
+stopLiveOcrBtn: document.getElementById("stopLiveOcrBtn"),
+liveOcrWrap: document.getElementById("liveOcrWrap"),
+liveOcrVideo: document.getElementById("liveOcrVideo"),
+liveOcrCanvas: document.getElementById("liveOcrCanvas")
 };
 
 function setMessage(text, type = "") {
@@ -232,6 +238,7 @@ function selectSlot(slot) {
   els.saveBtn.disabled = false;
   els.emptyBtn.disabled = false;
   els.ocrBtn.disabled = false;
+  els.liveOcrBtn.disabled = false;
 
   setMessage(`Lagerplatz ${slot.label} (${slot.cell}) ausgewählt.`, "ok");
   renderWarehouse();
@@ -710,6 +717,118 @@ async function saveSlotToFirestore(slot, value) {
     setMessage("Online-Speichern fehlgeschlagen.", "error");
   }
 }
+let liveOcrStream = null;
+let liveOcrTimer = null;
+let liveOcrRunning = false;
+
+async function startLiveOcr() {
+  if (!selectedSlot) {
+    setMessage("Bitte zuerst einen Lagerplatz auswählen.", "error");
+    return;
+  }
+
+  if (!window.Tesseract) {
+    setMessage("OCR-Bibliothek wurde nicht geladen.", "error");
+    return;
+  }
+
+  try {
+    liveOcrStream = await navigator.mediaDevices.getUserMedia({
+      video: {
+        facingMode: "environment"
+      },
+      audio: false
+    });
+
+    els.liveOcrVideo.srcObject = liveOcrStream;
+    els.liveOcrWrap.classList.remove("hidden");
+    els.liveOcrBtn.disabled = true;
+    els.stopLiveOcrBtn.disabled = false;
+
+    liveOcrRunning = true;
+
+    setMessage("Live-OCR läuft. Auftragsschein vor die Kamera halten.", "ok");
+
+    liveOcrTimer = setInterval(captureAndReadOcrFrame, 1800);
+
+  } catch (err) {
+    console.error(err);
+    setMessage("Kamera konnte nicht gestartet werden.", "error");
+  }
+}
+
+async function captureAndReadOcrFrame() {
+  if (!liveOcrRunning) return;
+
+  const video = els.liveOcrVideo;
+  const canvas = els.liveOcrCanvas;
+
+  if (!video.videoWidth || !video.videoHeight) return;
+
+  const ctx = canvas.getContext("2d");
+
+  const cropX = 0;
+  const cropY = 0;
+  const cropW = video.videoWidth;
+  const cropH = Math.floor(video.videoHeight * 0.45);
+
+  canvas.width = cropW;
+  canvas.height = cropH;
+
+  ctx.drawImage(video, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
+
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const data = imageData.data;
+
+  for (let i = 0; i < data.length; i += 4) {
+    const gray = data[i] * 0.3 + data[i + 1] * 0.59 + data[i + 2] * 0.11;
+    const value = gray > 150 ? 255 : 0;
+
+    data[i] = value;
+    data[i + 1] = value;
+    data[i + 2] = value;
+  }
+
+  ctx.putImageData(imageData, 0, 0);
+
+  try {
+    const result = await Tesseract.recognize(canvas, "eng");
+    const text = result.data.text || "";
+
+    console.log("Live OCR:", text);
+
+    const orderNumber = extractOrderNumber(text);
+
+    if (orderNumber) {
+      els.orderInput.value = orderNumber;
+      setMessage(`Erkannt: ${orderNumber}. Bitte prüfen und speichern.`, "ok");
+      await stopLiveOcr();
+    }
+
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+async function stopLiveOcr() {
+  liveOcrRunning = false;
+
+  if (liveOcrTimer) {
+    clearInterval(liveOcrTimer);
+    liveOcrTimer = null;
+  }
+
+  if (liveOcrStream) {
+    liveOcrStream.getTracks().forEach(track => track.stop());
+    liveOcrStream = null;
+  }
+
+  els.liveOcrVideo.srcObject = null;
+  els.liveOcrWrap.classList.add("hidden");
+
+  els.liveOcrBtn.disabled = !selectedSlot;
+  els.stopLiveOcrBtn.disabled = true;
+}
 
 els.fileInput.addEventListener("change", e => handleFile(e.target.files[0]));
 els.downloadBtn.addEventListener("click", downloadExcel);
@@ -731,6 +850,8 @@ els.emptyBtn.addEventListener("click", () => {
   els.orderInput.value = "";
   saveSelected("");
 });
+els.liveOcrBtn.addEventListener("click", startLiveOcr);
+els.stopLiveOcrBtn.addEventListener("click", stopLiveOcr);
 
 els.ocrBtn.addEventListener("click", () => {
   if (!selectedSlot) {
