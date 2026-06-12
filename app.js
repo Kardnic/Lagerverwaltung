@@ -1,47 +1,40 @@
-let workbook = null;
-let originalFileName = "Lagerplanung.xlsx";
 let selectedSlot = null;
-let html5QrCode = null;
 let lastFoundSlot = null;
+let liveOcrStream = null;
+let liveOcrTimer = null;
+let liveOcrRunning = false;
 
 const changedValues = new Map();
 const collapsedAreas = new Set(JSON.parse(localStorage.getItem("collapsedAreas") || "[]"));
 
 const els = {
-  fileInput: document.getElementById("fileInput"),
-  fileStatus: document.getElementById("fileStatus"),
-  downloadBtn: document.getElementById("downloadBtn"),
-  clearChangesBtn: document.getElementById("clearChangesBtn"),
-  loadJsonBtn: document.getElementById("loadJsonBtn"),
-  saveJsonBtn: document.getElementById("saveJsonBtn"),
-  jsonInput: document.getElementById("jsonInput"),
   selectedSlot: document.getElementById("selectedSlot"),
   selectedCell: document.getElementById("selectedCell"),
   currentValue: document.getElementById("currentValue"),
   orderInput: document.getElementById("orderInput"),
-  scanBtn: document.getElementById("scanBtn"),
+
+  liveOcrBtn: document.getElementById("liveOcrBtn"),
+  stopLiveOcrBtn: document.getElementById("stopLiveOcrBtn"),
+  liveOcrWrap: document.getElementById("liveOcrWrap"),
+  liveOcrVideo: document.getElementById("liveOcrVideo"),
+  liveOcrCanvas: document.getElementById("liveOcrCanvas"),
+
   saveBtn: document.getElementById("saveBtn"),
   emptyBtn: document.getElementById("emptyBtn"),
-  scannerWrap: document.getElementById("scannerWrap"),
-  stopScanBtn: document.getElementById("stopScanBtn"),
+
   message: document.getElementById("message"),
   warehouse: document.getElementById("warehouse"),
   statsBox: document.getElementById("statsBox"),
+
   searchInput: document.getElementById("searchInput"),
   searchBtn: document.getElementById("searchBtn"),
   findFreeBtn: document.getElementById("findFreeBtn"),
+
   outInput: document.getElementById("outInput"),
   outSearchBtn: document.getElementById("outSearchBtn"),
   outClearBtn: document.getElementById("outClearBtn"),
-  toggleDarkBtn: document.getElementById("toggleDarkBtn"),
-  ocrBtn: document.getElementById("ocrBtn"),
-  ocrImageInput: document.getElementById("ocrImageInput"),
-  ocrImageInput: document.getElementById("ocrImageInput"),
-liveOcrBtn: document.getElementById("liveOcrBtn"),
-stopLiveOcrBtn: document.getElementById("stopLiveOcrBtn"),
-liveOcrWrap: document.getElementById("liveOcrWrap"),
-liveOcrVideo: document.getElementById("liveOcrVideo"),
-liveOcrCanvas: document.getElementById("liveOcrCanvas")
+
+  toggleDarkBtn: document.getElementById("toggleDarkBtn")
 };
 
 function setMessage(text, type = "") {
@@ -65,37 +58,14 @@ function esc(str) {
 function colToName(col) {
   let name = "";
   let n = col;
+
   while (n > 0) {
     const r = (n - 1) % 26;
     name = String.fromCharCode(65 + r) + name;
     n = Math.floor((n - 1) / 26);
   }
+
   return name;
-}
-
-function getCellValue(sheetName, cellAddress) {
-  if (!workbook) return "";
-  const sheet = workbook.Sheets[sheetName];
-  if (!sheet) return "";
-  const cell = sheet[cellAddress];
-  return cell && cell.v != null ? String(cell.v) : "";
-}
-
-function setCellValue(sheetName, cellAddress, value) {
-  if (!workbook) return false;
-
-  let sheet = workbook.Sheets[sheetName];
-
-  if (!sheet) {
-    sheet = {};
-    workbook.Sheets[sheetName] = sheet;
-    if (!workbook.SheetNames.includes(sheetName)) {
-      workbook.SheetNames.push(sheetName);
-    }
-  }
-
-  XLSX.utils.sheet_add_aoa(sheet, [[value]], { origin: cellAddress });
-  return true;
 }
 
 function displayValue(slot) {
@@ -103,10 +73,7 @@ function displayValue(slot) {
     return changedValues.get(key(slot));
   }
 
-  const val = getCellValue(slot.sheet, slot.cell);
-  if (!val) return "";
-
-  return String(val).trim() === String(slot.label).trim() ? "" : String(val);
+  return "";
 }
 
 function occupied(slot) {
@@ -134,7 +101,7 @@ function createSlot(slot, minRow, minCol) {
   btn.type = "button";
   btn.className = "slot";
 
-  const val = displayValue(slot);
+  const value = displayValue(slot);
 
   if (selectedSlot && selectedSlot.id === slot.id) {
     btn.classList.add("selected");
@@ -151,10 +118,11 @@ function createSlot(slot, minRow, minCol) {
 
   btn.innerHTML = `
     <div class="slot-label">${esc(slot.label)}</div>
-    <div class="slot-value">${esc(val || "frei")}</div>
+    <div class="slot-value">${esc(value || "frei")}</div>
   `;
 
   btn.addEventListener("click", () => selectSlot(slot));
+
   return btn;
 }
 
@@ -189,6 +157,7 @@ function renderWarehouse() {
         collapsedAreas.add(area);
         sec.classList.add("collapsed");
       }
+
       saveUiState();
     });
 
@@ -215,7 +184,9 @@ function renderWarehouse() {
       grid.appendChild(label);
     }
 
-    areaSlots.forEach(slot => grid.appendChild(createSlot(slot, minRow, minCol)));
+    areaSlots.forEach(slot => {
+      grid.appendChild(createSlot(slot, minRow, minCol));
+    });
 
     sec.appendChild(title);
     sec.appendChild(grid);
@@ -227,20 +198,20 @@ function renderWarehouse() {
 
 function selectSlot(slot) {
   selectedSlot = slot;
-  const val = displayValue(slot);
+
+  const value = displayValue(slot);
 
   els.selectedSlot.textContent = slot.label;
   els.selectedCell.textContent = `${slot.sheet} / ${slot.cell}`;
-  els.currentValue.textContent = val || "-";
-  els.orderInput.value = val || "";
+  els.currentValue.textContent = value || "-";
+  els.orderInput.value = value || "";
 
-  els.scanBtn.disabled = false;
+  els.liveOcrBtn.disabled = false;
   els.saveBtn.disabled = false;
   els.emptyBtn.disabled = false;
-  els.ocrBtn.disabled = false;
-  els.liveOcrBtn.disabled = false;
 
-  setMessage(`Lagerplatz ${slot.label} (${slot.cell}) ausgewählt.`, "ok");
+  setMessage(`Lagerplatz ${slot.label} ausgewählt.`, "ok");
+
   renderWarehouse();
 
   setTimeout(() => {
@@ -259,146 +230,77 @@ async function saveSelected(valueOverride = null) {
 
   const value = valueOverride !== null ? valueOverride : els.orderInput.value.trim();
 
-  if (workbook) {
-    setCellValue(selectedSlot.sheet, selectedSlot.cell, value);
-  }
-
   changedValues.set(key(selectedSlot), value);
   saveLocalDraft();
 
   els.currentValue.textContent = value || "-";
-  els.downloadBtn.disabled = false;
-  els.clearChangesBtn.disabled = false;
 
   renderWarehouse();
 
   await saveSlotToFirestore(selectedSlot, value);
 }
 
-function handleFile(file) {
-  if (!file) return;
+async function saveSlotToFirestore(slot, value) {
+  try {
+    await db.collection("lager").doc(slot.id).set({
+      id: slot.id,
+      label: slot.label,
+      sheet: slot.sheet,
+      cell: slot.cell,
+      value: value || "",
+      updatedAt: new Date().toISOString()
+    });
 
-  originalFileName = file.name || "Lagerplanung.xlsx";
-
-  const reader = new FileReader();
-
-  reader.onload = e => {
-    try {
-      workbook = XLSX.read(new Uint8Array(e.target.result), { type: "array" });
-      els.fileStatus.textContent = `Geladen: ${originalFileName}`;
-      els.downloadBtn.disabled = false;
-      els.clearChangesBtn.disabled = false;
-      setMessage("Excel-Datei geladen.", "ok");
-      renderWarehouse();
-    } catch (err) {
-      console.error(err);
-      setMessage("Excel-Datei konnte nicht gelesen werden.", "error");
-    }
-  };
-
-  reader.readAsArrayBuffer(file);
-}
-
-function downloadExcel() {
-  if (!workbook) {
-    setMessage("Keine Excel-Datei geladen.", "error");
-    return;
+    setMessage("Online gespeichert.", "ok");
+  } catch (err) {
+    console.error(err);
+    setMessage("Online-Speichern fehlgeschlagen.", "error");
   }
-
-  const out = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
-  const blob = new Blob([out], {
-    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-  });
-
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-
-  let cleanName = originalFileName;
-  cleanName = cleanName.endsWith(".xlsx") ? cleanName.slice(0, -5) : cleanName;
-  cleanName = cleanName.endsWith(".xls") ? cleanName.slice(0, -4) : cleanName;
-
-  a.download = cleanName + "_aktualisiert.xlsx";
-
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-
-  setMessage("Aktualisierte Excel-Datei wurde erstellt.", "ok");
 }
 
-function buildLagerJson() {
-  const data = {};
+async function loadFromFirestore() {
+  try {
+    const snapshot = await db.collection("lager").get();
 
-  MAPPING.forEach(slot => {
-    const value = displayValue(slot);
+    changedValues.clear();
 
-    if (value && value.trim() !== "") {
-      data[slot.id] = {
-        id: slot.id,
-        label: slot.label,
-        sheet: slot.sheet,
-        cell: slot.cell,
-        value
-      };
-    }
-  });
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      const slot = MAPPING.find(s => s.id === doc.id);
 
-  return data;
+      if (slot) {
+        changedValues.set(key(slot), data.value || "");
+      }
+    });
+
+    saveLocalDraft();
+    renderWarehouse();
+
+    setMessage("Firebase-Daten geladen.", "ok");
+  } catch (err) {
+    console.error(err);
+    setMessage("Firebase-Daten konnten nicht geladen werden.", "error");
+  }
 }
 
-function applyLagerJson(data) {
-  changedValues.clear();
+function startRealtimeSync() {
+  db.collection("lager").onSnapshot(snapshot => {
+    snapshot.docChanges().forEach(change => {
+      const data = change.doc.data();
+      const slot = MAPPING.find(s => s.id === change.doc.id);
 
-  Object.values(data || {}).forEach(entry => {
-    const slot = MAPPING.find(s =>
-      s.id === entry.id ||
-      s.label === entry.label ||
-      s.cell === entry.cell
-    );
+      if (!slot) return;
 
-    if (slot) {
-      changedValues.set(key(slot), entry.value || "");
-    }
+      if (change.type === "removed") {
+        changedValues.delete(key(slot));
+      } else {
+        changedValues.set(key(slot), data.value || "");
+      }
+    });
+
+    saveLocalDraft();
+    renderWarehouse();
   });
-
-  saveLocalDraft();
-  renderWarehouse();
-}
-
-function exportJsonData() {
-  const blob = new Blob([JSON.stringify(buildLagerJson(), null, 2)], {
-    type: "application/json"
-  });
-
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = "lagerdaten.json";
-
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-
-  setMessage("lagerdaten.json wurde erstellt.", "ok");
-}
-
-function importJsonData(file) {
-  if (!file) return;
-
-  const reader = new FileReader();
-
-  reader.onload = e => {
-    try {
-      const text = String(e.target.result || "").trim();
-      const data = text ? JSON.parse(text) : {};
-      applyLagerJson(data);
-      setMessage("JSON-Daten wurden geladen.", "ok");
-    } catch (err) {
-      console.error(err);
-      setMessage("JSON-Datei konnte nicht gelesen werden.", "error");
-    }
-  };
-
-  reader.readAsText(file);
 }
 
 function findSlotByValueOrLabel(query) {
@@ -409,8 +311,84 @@ function findSlotByValueOrLabel(query) {
     const label = String(slot.label || "").toLowerCase();
     const value = String(displayValue(slot) || "").toLowerCase();
 
-    return label === q || value === q || label.includes(q) || value.includes(q);
+    return (
+      label === q ||
+      value === q ||
+      label.includes(q) ||
+      value.includes(q)
+    );
   }) || null;
+}
+
+function searchSlot() {
+  const slot = findSlotByValueOrLabel(els.searchInput.value);
+
+  if (!slot) {
+    setMessage("Kein Lagerplatz oder Auftrag gefunden.", "error");
+    return;
+  }
+
+  collapsedAreas.delete(slot.area);
+  saveUiState();
+
+  selectSlot(slot);
+
+  setMessage(`Gefunden: ${slot.label} in ${slot.area}`, "ok");
+}
+
+function findFreeSlot() {
+  const slot = MAPPING.find(s => !occupied(s));
+
+  if (!slot) {
+    setMessage("Kein freier Lagerplatz gefunden.", "error");
+    return;
+  }
+
+  collapsedAreas.delete(slot.area);
+  saveUiState();
+
+  selectSlot(slot);
+
+  setMessage(`Nächster freier Platz: ${slot.label}`, "ok");
+}
+
+function findOutgoingOrder() {
+  const slot = findSlotByValueOrLabel(els.outInput.value);
+
+  if (!slot) {
+    lastFoundSlot = null;
+    setMessage("Auftrag wurde nicht gefunden.", "error");
+    return;
+  }
+
+  lastFoundSlot = slot;
+
+  collapsedAreas.delete(slot.area);
+  saveUiState();
+
+  selectSlot(slot);
+
+  setMessage(`Auftrag gefunden: ${displayValue(slot)} liegt auf ${slot.label}`, "ok");
+}
+
+async function clearFoundOutgoingSlot() {
+  if (!lastFoundSlot && selectedSlot) {
+    lastFoundSlot = selectedSlot;
+  }
+
+  if (!lastFoundSlot) {
+    setMessage("Erst einen Auftrag suchen.", "error");
+    return;
+  }
+
+  selectedSlot = lastFoundSlot;
+  els.orderInput.value = "";
+
+  await saveSelected("");
+
+  setMessage(`Platz geleert: ${lastFoundSlot.label}`, "ok");
+
+  lastFoundSlot = null;
 }
 
 function updateStats() {
@@ -448,73 +426,6 @@ function updateStats() {
   ` + html;
 }
 
-function searchSlot() {
-  const slot = findSlotByValueOrLabel(els.searchInput.value);
-
-  if (!slot) {
-    setMessage("Kein Lagerplatz oder Auftrag gefunden.", "error");
-    return;
-  }
-
-  collapsedAreas.delete(slot.area);
-  saveUiState();
-  selectSlot(slot);
-
-  setMessage(`Gefunden: ${slot.label} in ${slot.area}`, "ok");
-}
-
-function findFreeSlot() {
-  const slot = MAPPING.find(s => !occupied(s));
-
-  if (!slot) {
-    setMessage("Kein freier Lagerplatz gefunden.", "error");
-    return;
-  }
-
-  collapsedAreas.delete(slot.area);
-  saveUiState();
-  selectSlot(slot);
-
-  setMessage(`Nächster freier Platz: ${slot.label}`, "ok");
-}
-
-function findOutgoingOrder() {
-  const slot = findSlotByValueOrLabel(els.outInput.value);
-
-  if (!slot) {
-    lastFoundSlot = null;
-    setMessage("Auftrag wurde nicht gefunden.", "error");
-    return;
-  }
-
-  lastFoundSlot = slot;
-
-  collapsedAreas.delete(slot.area);
-  saveUiState();
-  selectSlot(slot);
-
-  setMessage(`Auftrag gefunden: ${displayValue(slot)} liegt auf ${slot.label}`, "ok");
-}
-
-async function clearFoundOutgoingSlot() {
-  if (!lastFoundSlot && selectedSlot) {
-    lastFoundSlot = selectedSlot;
-  }
-
-  if (!lastFoundSlot) {
-    setMessage("Erst einen Auftrag suchen.", "error");
-    return;
-  }
-
-  selectedSlot = lastFoundSlot;
-  els.orderInput.value = "";
-
-  await saveSelected("");
-
-  setMessage(`Platz geleert: ${lastFoundSlot.label}`, "ok");
-  lastFoundSlot = null;
-}
-
 function toggleDarkMode() {
   document.body.classList.toggle("dark");
   localStorage.setItem("darkMode", document.body.classList.contains("dark") ? "1" : "0");
@@ -524,7 +435,9 @@ function extractOrderNumber(text) {
   const clean = String(text || "")
     .replace(/\s+/g, " ")
     .replace(/O/g, "0")
-    .replace(/o/g, "0");
+    .replace(/o/g, "0")
+    .replace(/\|/g, "I")
+    .trim();
 
   let match = clean.match(/[VI]\s*([0-9]{5,8})\s*\/\s*([0-9]{1,4})/i);
 
@@ -540,186 +453,6 @@ function extractOrderNumber(text) {
 
   return null;
 }
-
-function preprocessImageForOcr(file) {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    const reader = new FileReader();
-
-    reader.onload = e => {
-      img.onload = () => {
-        const canvas = document.createElement("canvas");
-        const ctx = canvas.getContext("2d");
-
-        const cropX = 0;
-        const cropY = 0;
-        const cropW = img.width;
-        const cropH = Math.floor(img.height * 0.38);
-
-        canvas.width = cropW;
-        canvas.height = cropH;
-
-        ctx.drawImage(img, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
-
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const data = imageData.data;
-
-        for (let i = 0; i < data.length; i += 4) {
-          const gray = data[i] * 0.3 + data[i + 1] * 0.59 + data[i + 2] * 0.11;
-          const value = gray > 150 ? 255 : 0;
-
-          data[i] = value;
-          data[i + 1] = value;
-          data[i + 2] = value;
-        }
-
-        ctx.putImageData(imageData, 0, 0);
-        resolve(canvas);
-      };
-
-      img.onerror = reject;
-      img.src = e.target.result;
-    };
-
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-}
-
-async function scanOrderNumberWithOcr(file) {
-  if (!selectedSlot) {
-    setMessage("Bitte zuerst einen Lagerplatz auswählen.", "error");
-    return;
-  }
-
-  if (!file) return;
-
-  if (!window.Tesseract) {
-    setMessage("OCR-Bibliothek wurde nicht geladen.", "error");
-    return;
-  }
-
-  try {
-    setMessage("Auftragsschein wird gelesen...", "ok");
-
-    const canvas = await preprocessImageForOcr(file);
-
-    const result = await Tesseract.recognize(canvas, "eng", {
-      logger: m => {
-        if (m.status === "recognizing text") {
-          const percent = Math.round((m.progress || 0) * 100);
-          setMessage(`Texterkennung läuft... ${percent}%`, "ok");
-        }
-      }
-    });
-
-    const text = result.data.text || "";
-    console.log("OCR Text:", text);
-
-    const orderNumber = extractOrderNumber(text);
-
-    if (!orderNumber) {
-      setMessage("Keine Auftragsnummer hinter V oder I erkannt.", "error");
-      return;
-    }
-
-    els.orderInput.value = orderNumber;
-    setMessage(`Erkannt: ${orderNumber}. Bitte prüfen und speichern.`, "ok");
-
-  } catch (err) {
-    console.error(err);
-    setMessage("Auftragsschein konnte nicht gelesen werden.", "error");
-  }
-}
-
-async function startScanner() {
-  if (!selectedSlot) {
-    setMessage("Bitte zuerst einen Lagerplatz auswählen.", "error");
-    return;
-  }
-
-  if (!window.Html5Qrcode) {
-    setMessage("Scanner-Bibliothek wurde nicht geladen.", "error");
-    return;
-  }
-
-  els.scannerWrap.classList.remove("hidden");
-
-  try {
-    html5QrCode = new Html5Qrcode("reader");
-
-    await html5QrCode.start(
-      { facingMode: "environment" },
-      { fps: 10, qrbox: { width: 250, height: 160 } },
-      async decodedText => {
-        els.orderInput.value = decodedText;
-        await stopScanner();
-        await saveSelected(decodedText);
-      },
-      () => {}
-    );
-  } catch (err) {
-    console.error(err);
-    setMessage("Kamera konnte nicht gestartet werden. Manuelle Eingabe ist möglich.", "error");
-  }
-}
-
-async function stopScanner() {
-  if (html5QrCode) {
-    try {
-      await html5QrCode.stop();
-      await html5QrCode.clear();
-    } catch (e) {}
-  }
-
-  html5QrCode = null;
-  els.scannerWrap.classList.add("hidden");
-}
-
-async function loadFromFirestore() {
-  try {
-    const snapshot = await db.collection("lager").get();
-
-    changedValues.clear();
-
-    snapshot.forEach(doc => {
-      const data = doc.data();
-      const slot = MAPPING.find(s => s.id === doc.id);
-
-      if (slot) {
-        changedValues.set(key(slot), data.value || "");
-      }
-    });
-
-    saveLocalDraft();
-    renderWarehouse();
-    setMessage("Firebase-Daten geladen.", "ok");
-  } catch (err) {
-    console.error(err);
-    setMessage("Firebase-Daten konnten nicht geladen werden.", "error");
-  }
-}
-
-async function saveSlotToFirestore(slot, value) {
-  try {
-    await db.collection("lager").doc(slot.id).set({
-      id: slot.id,
-      label: slot.label,
-      sheet: slot.sheet,
-      cell: slot.cell,
-      value: value || "",
-      updatedAt: new Date().toISOString()
-    });
-
-    setMessage("Online gespeichert.", "ok");
-  } catch (err) {
-    console.error(err);
-    setMessage("Online-Speichern fehlgeschlagen.", "error");
-  }
-}
-let liveOcrStream = null;
-let liveOcrTimer = null;
-let liveOcrRunning = false;
 
 async function startLiveOcr() {
   if (!selectedSlot) {
@@ -742,6 +475,7 @@ async function startLiveOcr() {
 
     els.liveOcrVideo.srcObject = liveOcrStream;
     els.liveOcrWrap.classList.remove("hidden");
+
     els.liveOcrBtn.disabled = true;
     els.stopLiveOcrBtn.disabled = false;
 
@@ -750,7 +484,6 @@ async function startLiveOcr() {
     setMessage("Live-OCR läuft. Auftragsschein vor die Kamera halten.", "ok");
 
     liveOcrTimer = setInterval(captureAndReadOcrFrame, 1800);
-
   } catch (err) {
     console.error(err);
     setMessage("Kamera konnte nicht gestartet werden.", "error");
@@ -794,9 +527,6 @@ async function captureAndReadOcrFrame() {
   try {
     const result = await Tesseract.recognize(canvas, "eng");
     const text = result.data.text || "";
-
-    console.log("Live OCR:", text);
-
     const orderNumber = extractOrderNumber(text);
 
     if (orderNumber) {
@@ -804,7 +534,6 @@ async function captureAndReadOcrFrame() {
       setMessage(`Erkannt: ${orderNumber}. Bitte prüfen und speichern.`, "ok");
       await stopLiveOcr();
     }
-
   } catch (err) {
     console.error(err);
   }
@@ -830,49 +559,19 @@ async function stopLiveOcr() {
   els.stopLiveOcrBtn.disabled = true;
 }
 
-els.fileInput.addEventListener("change", e => handleFile(e.target.files[0]));
-els.downloadBtn.addEventListener("click", downloadExcel);
-
-els.loadJsonBtn.addEventListener("click", () => els.jsonInput.click());
-els.jsonInput.addEventListener("change", e => importJsonData(e.target.files[0]));
-els.saveJsonBtn.addEventListener("click", exportJsonData);
-
-els.clearChangesBtn.addEventListener("click", () => {
-  changedValues.clear();
-  localStorage.removeItem("lagerplanungDraft");
-  renderWarehouse();
-  setMessage("Lokale Daten zurückgesetzt. Firebase bleibt unverändert.", "ok");
-});
-
 els.saveBtn.addEventListener("click", () => saveSelected());
 
 els.emptyBtn.addEventListener("click", () => {
   els.orderInput.value = "";
   saveSelected("");
 });
-els.liveOcrBtn.addEventListener("click", startLiveOcr);
-els.stopLiveOcrBtn.addEventListener("click", stopLiveOcr);
-
-els.ocrBtn.addEventListener("click", () => {
-  if (!selectedSlot) {
-    setMessage("Bitte zuerst einen Lagerplatz auswählen.", "error");
-    return;
-  }
-
-  els.ocrImageInput.click();
-});
-
-els.ocrImageInput.addEventListener("change", e => {
-  scanOrderNumberWithOcr(e.target.files[0]);
-  e.target.value = "";
-});
-
-els.scanBtn.addEventListener("click", startScanner);
-els.stopScanBtn.addEventListener("click", stopScanner);
 
 els.orderInput.addEventListener("keydown", e => {
   if (e.key === "Enter") saveSelected();
 });
+
+els.liveOcrBtn.addEventListener("click", startLiveOcr);
+els.stopLiveOcrBtn.addEventListener("click", stopLiveOcr);
 
 els.searchBtn.addEventListener("click", searchSlot);
 els.searchInput.addEventListener("keydown", e => {
@@ -903,3 +602,4 @@ if ("serviceWorker" in navigator) {
 
 renderWarehouse();
 loadFromFirestore();
+startRealtimeSync();
