@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="style.css" />
   <meta name="theme-color" content="#1f2937" />
 </head>
+
 <body>
   <header class="app-header">
     <h1>Lagerverwaltung</h1>
@@ -17,6 +18,7 @@
   <main>
     <section class="panel">
       <h2>Excel / Daten</h2>
+
       <input id="fileInput" type="file" accept=".xlsx,.xls" />
       <input id="jsonInput" type="file" accept=".json" style="display:none" />
 
@@ -45,15 +47,24 @@
       <input id="orderInput" type="text" placeholder="Scannen oder manuell eingeben" autocomplete="off" />
 
       <div class="button-row">
-        <button id="ocrBtn" disabled>Auftragsschein scannen</button>        
-        <button id="scanBtn" disabled>Kamera scannen</button>
+        <button id="scanBtn" disabled>Barcode scannen</button>
+        <button id="ocrBtn" disabled>Foto-OCR</button>
+        <button id="liveOcrBtn" disabled>Live-OCR starten</button>
+        <button id="stopLiveOcrBtn" disabled>Live-OCR stoppen</button>
         <button id="saveBtn" disabled>Speichern</button>
         <button id="emptyBtn" disabled>Platz leeren</button>
       </div>
+
       <input id="ocrImageInput" type="file" accept="image/*" capture="environment" style="display:none" />
+
       <div id="scannerWrap" class="scanner hidden">
         <div id="reader"></div>
         <button id="stopScanBtn">Scan beenden</button>
+      </div>
+
+      <div id="liveOcrWrap" class="scanner hidden">
+        <video id="liveOcrVideo" autoplay playsinline></video>
+        <canvas id="liveOcrCanvas" style="display:none"></canvas>
       </div>
 
       <p id="message" class="message"></p>
@@ -94,9 +105,10 @@
 
     <section id="warehouse" class="warehouse"></section>
   </main>
-  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
