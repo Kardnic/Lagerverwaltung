@@ -33,7 +33,9 @@ const els = {
   outInput: document.getElementById("outInput"),
   outSearchBtn: document.getElementById("outSearchBtn"),
   outClearBtn: document.getElementById("outClearBtn"),
-  toggleDarkBtn: document.getElementById("toggleDarkBtn")
+  toggleDarkBtn: document.getElementById("toggleDarkBtn"),
+  ocrBtn: document.getElementById("ocrBtn"),
+  ocrImageInput: document.getElementById("ocrImageInput")
 };
 
 function setMessage(text, type = "") {
@@ -229,6 +231,7 @@ function selectSlot(slot) {
   els.scanBtn.disabled = false;
   els.saveBtn.disabled = false;
   els.emptyBtn.disabled = false;
+  els.ocrBtn.disabled = false;
 
   setMessage(`Lagerplatz ${slot.label} (${slot.cell}) ausgewählt.`, "ok");
   renderWarehouse();
@@ -510,6 +513,118 @@ function toggleDarkMode() {
   localStorage.setItem("darkMode", document.body.classList.contains("dark") ? "1" : "0");
 }
 
+function extractOrderNumber(text) {
+  const clean = String(text || "")
+    .replace(/\s+/g, " ")
+    .replace(/O/g, "0")
+    .replace(/o/g, "0");
+
+  let match = clean.match(/[VI]\s*([0-9]{5,8})\s*\/\s*([0-9]{1,4})/i);
+
+  if (match) {
+    return `${match[1]}/${match[2]}`;
+  }
+
+  match = clean.match(/[VI]\s*([0-9]{5,8})/i);
+
+  if (match) {
+    return match[1];
+  }
+
+  return null;
+}
+
+function preprocessImageForOcr(file) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const reader = new FileReader();
+
+    reader.onload = e => {
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+
+        const cropX = 0;
+        const cropY = 0;
+        const cropW = img.width;
+        const cropH = Math.floor(img.height * 0.38);
+
+        canvas.width = cropW;
+        canvas.height = cropH;
+
+        ctx.drawImage(img, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
+
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const data = imageData.data;
+
+        for (let i = 0; i < data.length; i += 4) {
+          const gray = data[i] * 0.3 + data[i + 1] * 0.59 + data[i + 2] * 0.11;
+          const value = gray > 150 ? 255 : 0;
+
+          data[i] = value;
+          data[i + 1] = value;
+          data[i + 2] = value;
+        }
+
+        ctx.putImageData(imageData, 0, 0);
+        resolve(canvas);
+      };
+
+      img.onerror = reject;
+      img.src = e.target.result;
+    };
+
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+async function scanOrderNumberWithOcr(file) {
+  if (!selectedSlot) {
+    setMessage("Bitte zuerst einen Lagerplatz auswählen.", "error");
+    return;
+  }
+
+  if (!file) return;
+
+  if (!window.Tesseract) {
+    setMessage("OCR-Bibliothek wurde nicht geladen.", "error");
+    return;
+  }
+
+  try {
+    setMessage("Auftragsschein wird gelesen...", "ok");
+
+    const canvas = await preprocessImageForOcr(file);
+
+    const result = await Tesseract.recognize(canvas, "eng", {
+      logger: m => {
+        if (m.status === "recognizing text") {
+          const percent = Math.round((m.progress || 0) * 100);
+          setMessage(`Texterkennung läuft... ${percent}%`, "ok");
+        }
+      }
+    });
+
+    const text = result.data.text || "";
+    console.log("OCR Text:", text);
+
+    const orderNumber = extractOrderNumber(text);
+
+    if (!orderNumber) {
+      setMessage("Keine Auftragsnummer hinter V oder I erkannt.", "error");
+      return;
+    }
+
+    els.orderInput.value = orderNumber;
+    setMessage(`Erkannt: ${orderNumber}. Bitte prüfen und speichern.`, "ok");
+
+  } catch (err) {
+    console.error(err);
+    setMessage("Auftragsschein konnte nicht gelesen werden.", "error");
+  }
+}
+
 async function startScanner() {
   if (!selectedSlot) {
     setMessage("Bitte zuerst einen Lagerplatz auswählen.", "error");
@@ -617,6 +732,20 @@ els.emptyBtn.addEventListener("click", () => {
   saveSelected("");
 });
 
+els.ocrBtn.addEventListener("click", () => {
+  if (!selectedSlot) {
+    setMessage("Bitte zuerst einen Lagerplatz auswählen.", "error");
+    return;
+  }
+
+  els.ocrImageInput.click();
+});
+
+els.ocrImageInput.addEventListener("change", e => {
+  scanOrderNumberWithOcr(e.target.files[0]);
+  e.target.value = "";
+});
+
 els.scanBtn.addEventListener("click", startScanner);
 els.stopScanBtn.addEventListener("click", stopScanner);
 
@@ -650,7 +779,6 @@ if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("service-worker.js").catch(console.warn);
   });
 }
-console.log("Firebase:", firebase);
-console.log("Firestore:", db);
+
 renderWarehouse();
 loadFromFirestore();
