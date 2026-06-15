@@ -7,6 +7,6 @@ function addSide(sheet,prefix,side,cols,rows){rows.forEach((row,rowIndex)=>{cols
 function addMiddle(sheet,prefix,cols,rows){cols.forEach((col,colIndex)=>{rows.forEach((row,rowIndex)=>{const number=colIndex*4+rowIndex+1;mapping.push(makeSlot(sheet,`${colName(col)}${row}`,`F${prefix}.${number}`,"middle",row,col));});});}
 addTop("Regal und Feld 1","R1",5,5);addMiddle("Regal und Feld 1","1",[2,4,6,8,10],[8,10,12,14]);addSide("Regal und Feld 1","R1",3,[12,13,14],[8,10,12,14]);
 addTop("Regal und Feld 2","R2",9,6);addSide("Regal und Feld 2","R2",1,[3,4,5],[9,11,13,15]);addMiddle("Regal und Feld 2","2",[6,8,10,12,14],[9,11,13,15]);addSide("Regal und Feld 2","R2",3,[16,17,18],[9,11,13,15]);
-addTop("Regal und Feld 3","R2",7,5);addSide("Regal und Feld 3","R3",1,[1,2,3],[8,10,12,14]);addMiddle("Regal und Feld 3","3",[4,6,8,10,12],[8,10,12,14]);addSide("Regal und Feld 3","R3",3,[14,15,16],[8,10,12,14]);
+addTop("Regal und Feld 3","R3",7,5);addSide("Regal und Feld 3","R3",1,[1,2,3],[8,10,12,14]);addMiddle("Regal und Feld 3","3",[4,6,8,10,12],[8,10,12,14]);addSide("Regal und Feld 3","R3",3,[14,15,16],[8,10,12,14]);
 const sheet4="Regal und Feld 4";for(let i=0;i<12;i++){const col=5+i;mapping.push(makeSlot(sheet4,`${colName(col)}5`,`R3.2.${24+i}`,"top",5,col));}for(let i=0;i<12;i++){const col=5+i;mapping.push(makeSlot(sheet4,`${colName(col)}6`,`R3.2.${13+i}`,"top",6,col));}for(let i=0;i<12;i++){const col=5+i;mapping.push(makeSlot(sheet4,`${colName(col)}7`,`R3.2.${1+i}`,"top",7,col));}return mapping;}
 const MAPPING=generateMapping();
