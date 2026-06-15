@@ -239,6 +239,18 @@ async function saveSelected(valueOverride = null) {
 
   renderWarehouse();
 
+  setTimeout(() => {
+  const slotElement = document.querySelector(".slot.selected");
+
+  if (slotElement) {
+    slotElement.scrollIntoView({
+      behavior: "smooth",
+      block: "center",
+      inline: "center"
+    });
+  }
+}, 200);
+
   await saveSlotToFirestore(selectedSlot, value);
 }
 
