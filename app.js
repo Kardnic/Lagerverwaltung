@@ -215,11 +215,13 @@ function selectSlot(slot) {
   renderWarehouse();
 
   setTimeout(() => {
-    const selected = document.querySelector(".slot.selected");
-    if (selected) {
-      selected.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" });
-    }
-  }, 100);
+  els.orderInput.scrollIntoView({
+    behavior: "smooth",
+    block: "center"
+  });
+
+  els.orderInput.focus();
+}, 100);
 }
 
 async function saveSelected(valueOverride = null) {
