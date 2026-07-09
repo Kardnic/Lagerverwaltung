@@ -30,6 +30,7 @@ window.addEventListener("DOMContentLoaded", () => {
             platzBis.value = platzVon.value;
         });
     }
+    
 
     // Fokus beim Start
     const auftrag = document.getElementById("auftragInput");
