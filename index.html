@@ -1,158 +1,157 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="de">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Lagerverwaltung</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <link rel="manifest" href="manifest.webmanifest">
-  <link rel="stylesheet" href="style.css">
+  <title>Lagerplatz-App</title>
 
-  <meta name="theme-color" content="#1f2937">
+  <link rel="stylesheet" href="style.css" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="icon.svg" />
+
+  <script src="https://unpkg.com/html5-qrcode"></script>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 </head>
 
 <body>
-
-<header class="app-header">
-  <h1>Lagerverwaltung</h1>
-  <p>KWK Verpackung</p>
-</header>
-
-<main>
-
-  <section class="panel sticky-panel">
-
-    <h2>Ausgewählter Lagerplatz</h2>
-
-    <div class="selected-box">
-      <div><strong>Platz:</strong> <span id="selectedSlot">-</span></div>
-      <div><strong>Zelle:</strong> <span id="selectedCell">-</span></div>
-      <div><strong>Aktueller Inhalt:</strong> <span id="currentValue">-</span></div>
+  <header class="app-header">
+    <div>
+      <h1>Lagerplatz-App</h1>
+      <p>Paletten einlagern, auslagern und suchen</p>
     </div>
 
-    <label for="orderInput">Auftragsnummer</label>
+    <button id="toggleDarkBtn" class="icon-btn" type="button">🌙</button>
+  </header>
 
-    <input
-      id="orderInput"
-      type="text"
-      placeholder="Auftragsnummer eingeben"
-      autocomplete="off"
-    >
+  <main class="app-shell">
+    <nav class="mobile-nav">
+      <button class="nav-btn active" data-view="einlagernView" type="button">📦 Einlagern</button>
+      <button class="nav-btn" data-view="auslagernView" type="button">📤 Auslagern</button>
+    </nav>
 
-    <div class="button-row">
-      <button id="saveBtn" disabled>
-        Speichern
-      </button>
-      
-      <button id="liveOcrBtn" disabled>
-        Live-OCR starten
-      </button>
+    <nav class="desktop-nav">
+      <button class="nav-btn active" data-view="sucheView" type="button">🔍 Suche</button>
+      <button class="nav-btn" data-view="uebersichtView" type="button">📋 Übersicht</button>
+      <button class="nav-btn" data-view="einlagernView" type="button">📦 Einlagern</button>
+      <button class="nav-btn" data-view="auslagernView" type="button">📤 Auslagern</button>
+    </nav>
 
-      <button id="stopLiveOcrBtn" disabled>
-        Live-OCR stoppen
-      </button>
+    <section id="message" class="message"></section>
 
+    <!-- EINLAGERN -->
+    <section id="einlagernView" class="view active">
+      <div class="card">
+        <h2>Palette einlagern</h2>
 
+        <label>
+          Auftragsnummer
+          <input id="auftragInput" type="text" inputmode="numeric" placeholder="z. B. 933841" />
+        </label>
 
-      <button id="emptyBtn" disabled>
-        Platz leeren
-      </button>
-    </div>
+        <label>
+          Positionsnummer
+          <input id="positionInput" type="text" inputmode="numeric" placeholder="z. B. 1" />
+        </label>
 
-    <div id="liveOcrWrap" class="scanner hidden">
-      <video
-        id="liveOcrVideo"
-        autoplay
-        playsinline
-        muted>
-      </video>
+        <label>
+          Palettennummer
+          <input id="paletteInput" type="text" inputmode="numeric" placeholder="Barcode scannen oder eingeben" />
+        </label>
 
-      <canvas
-        id="liveOcrCanvas"
-        style="display:none">
-      </canvas>
-    </div>
+        <div class="button-row">
+          <button id="scanPaletteBtn" type="button">📷 Barcode scannen</button>
+          <button id="stopScanBtn" class="secondary hidden" type="button">Scan stoppen</button>
+        </div>
 
-    <p id="message" class="message"></p>
+        <div id="scannerWrap" class="scanner hidden">
+          <div id="scanner"></div>
+        </div>
 
-  </section>
+        <div class="grid-2">
+          <label>
+            Bereich
+            <select id="bereichInput"></select>
+          </label>
 
-  <section class="legend">
-    <span><span class="dot free"></span> frei</span>
-    <span><span class="dot occupied"></span> belegt</span>
-    <span><span class="dot selected"></span> ausgewählt</span>
-    <span><span class="dot changed"></span> geändert</span>
-  </section>
+          <label>
+            Platz von
+            <select id="platzVonInput"></select>
+          </label>
+        </div>
 
-  <section class="panel mobile-tools">
+        <label>
+          Platz bis
+          <select id="platzBisInput"></select>
+        </label>
 
-    <h2>Werkzeuge</h2>
+        <button id="savePaletteBtn" class="primary" type="button">Palette einlagern</button>
+      </div>
+    </section>
 
-    <div id="statsBox" class="stats-box"></div>
+    <!-- AUSLAGERN -->
+    <section id="auslagernView" class="view">
+      <div class="card">
+        <h2>Palette auslagern</h2>
 
-    <label for="searchInput">
-      Auftrag oder Lagerplatz suchen
-    </label>
+        <div class="grid-2">
+          <label>
+            Bereich
+            <select id="ausBereichInput"></select>
+          </label>
 
-    <input
-      id="searchInput"
-      type="text"
-      placeholder="z.B. 123456/01 oder R1.2.15"
-    >
+          <label>
+            Platz
+            <select id="ausPlatzInput"></select>
+          </label>
+        </div>
 
-    <div class="button-row">
-      <button id="searchBtn">
-        Suchen
-      </button>
+        <button id="findPlaceBtn" class="primary" type="button">Lagerplatz öffnen</button>
 
-      <button id="findFreeBtn">
-        Nächsten freien Platz
-      </button>
-    </div>
+        <div id="auslagerInfo" class="result-box hidden"></div>
 
-    <label for="outInput">
-      Auslagern / Auftrag finden
-    </label>
+        <button id="removePaletteBtn" class="danger hidden" type="button">Palette auslagern</button>
+      </div>
+    </section>
 
-    <input
-      id="outInput"
-      type="text"
-      placeholder="Auftragsnummer eingeben"
-    >
+    <!-- SUCHE -->
+    <section id="sucheView" class="view desktop-default">
+      <div class="card">
+        <h2>Auftrag suchen</h2>
 
-    <div class="button-row">
-      <button id="outSearchBtn">
-        Auftrag finden
-      </button>
+        <div class="grid-2">
+          <label>
+            Auftragsnummer
+            <input id="searchAuftragInput" type="text" inputmode="numeric" placeholder="z. B. 933841" />
+          </label>
 
-      <button id="outClearBtn">
-        Gefundenen Platz leeren
-      </button>
-    </div>
+          <label>
+            Positionsnummer
+            <input id="searchPositionInput" type="text" inputmode="numeric" placeholder="z. B. 1" />
+          </label>
+        </div>
 
-    <div class="button-row">
-      <button id="toggleDarkBtn">
-        🌙 Dunkelmodus
-      </button>
-    </div>
+        <button id="searchOrderBtn" class="primary" type="button">Suchen</button>
 
-  </section>
+        <div id="searchResult" class="result-box hidden"></div>
+      </div>
+    </section>
 
-  <section
-    id="warehouse"
-    class="warehouse">
-  </section>
+    <!-- ÜBERSICHT -->
+    <section id="uebersichtView" class="view">
+      <div class="card">
+        <h2>Lagerübersicht</h2>
 
-</main>
+        <input id="overviewFilterInput" type="text" placeholder="Filtern nach Auftrag, Palette, Bereich oder Platz" />
 
-<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+        <div id="overviewList" class="table-wrap"></div>
+      </div>
+    </section>
+  </main>
 
-<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
-
-<script src="mapping.js"></script>
-<script src="firebase-config.js"></script>
-<script src="app.js"></script>
-
+  <script src="firebase-config.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>
