@@ -42,23 +42,48 @@ const Search = {
         }
 
         let html = `
-            <div class="result-title">
-                Auftrag ${auftrag} / ${position}<br>
-                ${results.length} Palette${results.length === 1 ? "" : "n"} im Lager
-            </div>
-        `;
+    <div class="result-title">
+        Auftrag ${auftrag} / ${position}<br>
+        ${results.length} Palette${results.length === 1 ? "" : "n"} im Lager
+    </div>
+`;
 
-        results.forEach(p => {
-            html += `
-                <div class="result-line">
-                    <strong>${p.bereich}</strong> · Platz ${p.platzVon}${p.platzBis !== p.platzVon ? "–" + p.platzBis : ""}
-                    <br>
-                    Palette: ${p.palette}
-                </div>
-            `;
-        });
+results.forEach(p => {
+    const placeText =
+        Number(p.platzVon) === Number(p.platzBis)
+            ? p.platzVon
+            : `${p.platzVon}–${p.platzBis}`;
 
-        box.innerHTML = html;
+    const preparedText = p.vorbereitet
+        ? `<div class="muted-text">
+             Bereits für ${p.maschine || "eine Maschine"} vorbereitet
+           </div>`
+        : "";
+
+    html += `
+        <label class="search-palette-item">
+            <input
+                class="search-palette-checkbox"
+                type="checkbox"
+                data-palette-id="${p.id}"
+                ${p.vorbereitet ? "disabled" : ""}
+            >
+
+            <span>
+                <strong>${p.bereich} · Platz ${placeText}</strong>
+                <br>
+                Palette: ${p.palette}
+                ${preparedText}
+            </span>
+        </label>
+    `;
+});
+
+box.innerHTML = html;
+
+document
+    .getElementById("searchPreparationControls")
+    .classList.remove("hidden");
     },
 
     renderOverview() {
