@@ -454,3 +454,58 @@ body.dark button:not(.primary):not(.danger):not(.active) {
   background: #334155;
   color: #f9fafb;
 }
+.drop-zone {
+
+    border: 3px dashed var(--border);
+
+    border-radius: 18px;
+
+    padding: 40px;
+
+    text-align: center;
+
+    transition: .2s;
+
+}
+
+.drop-zone.drag {
+
+    border-color: var(--primary);
+
+    background: rgba(37,99,235,.08);
+
+}
+
+.drop-icon{
+
+    font-size:64px;
+
+}
+
+.drop-title{
+
+    margin-top:16px;
+
+    font-size:22px;
+
+    font-weight:700;
+
+}
+
+.drop-subtitle{
+
+    margin:10px 0 20px;
+
+    color:var(--muted);
+
+}
+
+.planung-preview{
+
+    width:100%;
+
+    border-radius:12px;
+
+    border:1px solid var(--border);
+
+}
