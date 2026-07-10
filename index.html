@@ -28,9 +28,19 @@
 
   <main class="app-shell">
     <nav class="mobile-nav">
-      <button class="nav-btn active" data-view="einlagernView" type="button">📦 Einlagern</button>
-      <button class="nav-btn" data-view="auslagernView" type="button">📤 Auslagern</button>
-    </nav>
+  <button class="nav-btn active" data-view="einlagernView" type="button">
+    📦 Einlagern
+  </button>
+
+  <button class="nav-btn" data-view="auslagernView" type="button">
+    📤 Auslagern
+  </button>
+
+  <button class="nav-btn" data-view="vorbereitungView" type="button">
+    📋 Vorbereitung
+    <span id="mobilePreparationCount"></span>
+  </button>
+</nav>
 
      <nav class="desktop-nav">
       <button class="nav-btn active" data-view="sucheView" type="button">🔍 Suche</button>
