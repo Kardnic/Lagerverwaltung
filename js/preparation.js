@@ -73,7 +73,7 @@ const Preparation = {
             JSON.stringify(this.items)
         );
 
-        this.();
+        this.render();
     },
 
     async addSelectedPalettes() {
