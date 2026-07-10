@@ -36,10 +36,15 @@ const Search = {
 
         box.classList.remove("hidden");
 
-        if (!results.length) {
-            box.innerHTML = `<div class="result-title">Keine Paletten gefunden</div>`;
-            return;
-        }
+       if (!results.length) {
+    box.innerHTML = `<div class="result-title">Keine Paletten gefunden</div>`;
+
+    document
+        .getElementById("searchPreparationControls")
+        .classList.add("hidden");
+
+    return;
+}
 
         let html = `
     <div class="result-title">
