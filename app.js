@@ -22,6 +22,9 @@ window.addEventListener("DOMContentLoaded", () => {
     //Arbeitsvorbereitung
     Preparation.init();
 
+    //Planung
+    Planning.init();
+
     // PlatzBis automatisch auf PlatzVon setzen
     const platzVon = document.getElementById("platzVonInput");
     const platzBis = document.getElementById("platzBisInput");
