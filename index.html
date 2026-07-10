@@ -44,10 +44,8 @@
 
      <nav class="desktop-nav">
       <button class="nav-btn active" data-view="sucheView" type="button">🔍 Suche</button>
-      <button class="nav-btn" data-view="vorbereitungView" type="button">
-        🛠 Vorbereitung
-        <span id="preparationCount"></span>
-      </button>
+      <button class="nav-btn" data-view="planungView" type="button">🖼 Planung importieren</button>
+      <button class="nav-btn" data-view="vorbereitungView" type="button">🛠 Vorbereitung<span id="preparationCount"></span></button>
       <button class="nav-btn" data-view="uebersichtView" type="button">📋 Übersicht</button>
       <button class="nav-btn" data-view="einlagernView" type="button">📦 Einlagern</button>
       <button class="nav-btn" data-view="auslagernView" type="button">📤 Auslagern</button>
@@ -163,6 +161,83 @@
 </div>
       </div>
     </section>
+
+    <section id="planungView" class="view">
+
+    <div class="card">
+
+        <h2>Produktionsplanung importieren</h2>
+
+        <p>
+            Ziehe einen Screenshot hier hinein oder füge ihn mit
+            <strong>Strg + V</strong> ein.
+        </p>
+
+        <div id="dropZone" class="drop-zone">
+
+            <div class="drop-icon">🖼</div>
+
+            <div class="drop-title">
+                Screenshot hier ablegen
+            </div>
+
+            <div class="drop-subtitle">
+                oder Datei auswählen
+            </div>
+
+            <input
+                id="planungFileInput"
+                type="file"
+                accept="image/*"
+                hidden
+            >
+
+            <button
+                id="planungSelectFileBtn"
+                class="secondary"
+                type="button"
+            >
+                Bild auswählen
+            </button>
+
+        </div>
+
+    </div>
+
+    <div
+        id="planungPreviewCard"
+        class="card hidden"
+    >
+
+        <h2>Vorschau</h2>
+
+        <img
+            id="planungPreview"
+            class="planung-preview"
+        >
+
+    </div>
+
+    <div
+        id="planungResultCard"
+        class="card hidden"
+    >
+
+        <h2>Erkannte Aufträge</h2>
+
+        <div id="planungResult"></div>
+
+        <button
+            id="planungAnalyseBtn"
+            class="primary"
+            type="button"
+        >
+            Aufträge suchen
+        </button>
+
+    </div>
+
+</section>
 
     <!-- ARBEITSVORBEREITUNG -->
 <section id="vorbereitungView" class="view">
