@@ -42,7 +42,41 @@ const FirestoreService = {
             ...doc.data()
         }));
     },
+async searchOrders(orderKeys) {
+    const uniqueKeys = [...new Set(
+        orderKeys
+            .map(key => String(key || "").trim())
+            .filter(Boolean)
+    )];
 
+    if (!uniqueKeys.length) {
+        return [];
+    }
+
+    const results = [];
+
+    // Firestore verarbeitet "in"-Abfragen nur mit begrenzter Anzahl Werte.
+    // Deshalb teilen wir größere Planungen in Blöcke auf.
+    const chunkSize = 30;
+
+    for (let index = 0; index < uniqueKeys.length; index += chunkSize) {
+        const chunk = uniqueKeys.slice(index, index + chunkSize);
+
+        const snapshot = await this.collection()
+            .where("auftragKey", "in", chunk)
+            .where("ausgelagert", "==", false)
+            .get();
+
+        snapshot.forEach(doc => {
+            results.push({
+                id: doc.id,
+                ...doc.data()
+            });
+        });
+    }
+
+    return results;
+},
     async findByPlace(bereich, platz) {
         const all = await this.getAllPalettes();
 
