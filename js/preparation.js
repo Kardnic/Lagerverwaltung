@@ -73,7 +73,7 @@ const Preparation = {
             JSON.stringify(this.items)
         );
 
-        this.render();
+        this.();
     },
 
     async addSelectedPalettes() {
@@ -254,6 +254,7 @@ const Preparation = {
         const list = document.getElementById("preparationList");
         const summary = document.getElementById("preparationSummary");
         const count = document.getElementById("preparationCount");
+        const mobileCount = document.getElementById("mobilePreparationCount");
 
         if (!list) return;
 
@@ -279,11 +280,17 @@ const Preparation = {
             }
         }
 
-        if (count) {
-            count.textContent = this.items.length
-                ? `(${this.items.length})`
-                : "";
-        }
+        const countText = this.items.length
+    ? `(${this.items.length})`
+    : "";
+
+if (count) {
+    count.textContent = countText;
+}
+
+if (mobileCount) {
+    mobileCount.textContent = countText;
+}
 
         if (!this.items.length) {
             list.innerHTML = `
