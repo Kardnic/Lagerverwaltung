@@ -32,8 +32,12 @@
       <button class="nav-btn" data-view="auslagernView" type="button">📤 Auslagern</button>
     </nav>
 
-    <nav class="desktop-nav">
+     <nav class="desktop-nav">
       <button class="nav-btn active" data-view="sucheView" type="button">🔍 Suche</button>
+      <button class="nav-btn" data-view="vorbereitungView" type="button">
+        🛠 Vorbereitung
+        <span id="preparationCount"></span>
+      </button>
       <button class="nav-btn" data-view="uebersichtView" type="button">📋 Übersicht</button>
       <button class="nav-btn" data-view="einlagernView" type="button">📦 Einlagern</button>
       <button class="nav-btn" data-view="auslagernView" type="button">📤 Auslagern</button>
@@ -136,9 +140,62 @@
         <button id="searchOrderBtn" class="primary" type="button">Suchen</button>
 
         <div id="searchResult" class="result-box hidden"></div>
+
+<div id="searchPreparationControls" class="preparation-controls hidden">
+  <label>
+    Maschine
+    <select id="searchMachineInput"></select>
+  </label>
+
+  <button id="addToPreparationBtn" class="primary" type="button">
+    Ausgewählte zur Vorbereitung hinzufügen
+  </button>
+</div>
       </div>
     </section>
 
+    <!-- ARBEITSVORBEREITUNG -->
+<section id="vorbereitungView" class="view">
+  <div class="card">
+    <div class="preparation-header">
+      <div>
+        <h2>Arbeitsvorbereitung</h2>
+        <p id="preparationSummary" class="muted-text">
+          Noch keine Paletten ausgewählt.
+        </p>
+      </div>
+
+      <label class="sort-label">
+        Sortierung
+        <select id="preparationSortInput">
+          <option value="lagerweg">Nach Lagerweg</option>
+          <option value="maschine">Nach Maschine</option>
+          <option value="auftrag">Nach Auftrag</option>
+        </select>
+      </label>
+    </div>
+
+    <div id="preparationList" class="preparation-list">
+      <div class="empty-state">
+        Noch keine Paletten zur Vorbereitung hinzugefügt.
+      </div>
+    </div>
+
+    <div class="preparation-actions">
+      <button id="printPreparationBtn" type="button">
+        🖨 Drucken
+      </button>
+
+      <button id="completePreparationBtn" class="danger" type="button">
+        📤 Als ausgelagert markieren
+      </button>
+
+      <button id="clearPreparationBtn" class="secondary" type="button">
+        🗑 Liste leeren
+      </button>
+    </div>
+  </div>
+</section>
     <!-- ÜBERSICHT -->
     <section id="uebersichtView" class="view">
       <div class="card">
