@@ -409,6 +409,16 @@ td {
     grid-template-columns: repeat(3, 1fr);
   }
 }
+
+.mobile-nav {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.mobile-nav .nav-btn {
+  padding: 11px 8px;
+  font-size: 14px;
+}
 /* Darkmode */
 body.dark {
   --bg: #0f172a;
