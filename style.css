@@ -409,15 +409,20 @@ td {
     grid-template-columns: repeat(3, 1fr);
   }
 }
+@media (max-width: 799px) {
+  .mobile-nav {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
 
-.mobile-nav {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  .mobile-nav .nav-btn {
+    padding: 11px 8px;
+    font-size: 14px;
+  }
 }
 
-.mobile-nav .nav-btn {
-  padding: 11px 8px;
-  font-size: 14px;
+
 }
 /* Darkmode */
 body.dark {
